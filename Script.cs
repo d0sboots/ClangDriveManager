@@ -121,48 +121,21 @@ void Init()
     GridTerminalSystem.GetBlocksOfType<IMyDoor>(doors);
 
     //remove unnecessary blocks, improves performance
-    for(int i = Cargos.Count-1; i>-1; i--)
-    {
-        if(Cargos[i].BlockDefinition.SubtypeId.ToString() != "LargeBlockSmallContainer" && Cargos[i].BlockDefinition.SubtypeId.ToString() != "SmallBlockMediumContainer")
-        {
-            Cargos.RemoveAt(i); //remove lockers and shit
-            continue;
-        }
-        if(Cargos[i].CustomName.Contains(ignoretag)) Cargos.RemoveAt(i);
-    }
-
-    for(int i = Assemblers.Count-1; i>-1; i--)
-    {
-        if(Assemblers[i].BlockDefinition.SubtypeId.ToString() != "BasicAssembler")
-        {
-            Assemblers.RemoveAt(i); //remove large assemblers
-            continue;
-        }
-        if(Assemblers[i].CustomName.Contains(ignoretag)) Assemblers.RemoveAt(i);
-    }
-
-    for(int i = Rotors.Count-1; i>-1; i--)
-    {
-        if(Rotors[i].BlockDefinition.TypeId.ToString() == "MyObjectBuilder_MotorSuspension")
-        {
-            Rotors.RemoveAt(i); //remove wheels
-            continue;
-        }
-        if(Rotors[i].CustomName.Contains(ignoretag)) Rotors.RemoveAt(i);
-    }
-
-    for(int i = doors.Count-1; i>-1; i--)
-    {
-        if(doors[i].CustomName.Contains(ignoretag)) doors.RemoveAt(i);
-    }
-
-    for(int i = Pistons.Count-1; i>-1; i--)
-        if(Pistons[i].CustomName.Contains(ignoretag)) Pistons.RemoveAt(i);
-    for(int i = Connectors.Count-1; i>-1; i--)
-        if(Connectors[i].CustomName.Contains(ignoretag)) Connectors.RemoveAt(i);
-    for(int i = MergeBlocks.Count-1; i>-1; i--)
-        if(MergeBlocks[i].CustomName.Contains(ignoretag)) MergeBlocks.RemoveAt(i);
-
+    Cargos.RemoveAll(x => {
+        string subtype = x.BlockDefinition.SubtypeId.ToString();
+        if(subtype != "LargeBlockSmallContainer" && subtype != "SmallBlockMediumContainer") return true;
+        return x.CustomName.Contains(ignoretag);
+    });
+    Assemblers.RemoveAll(x => x.BlockDefinition.SubtypeId.ToString() != "BasicAssembler" || x.CustomName.Contains(ignoretag));
+    Rotors.RemoveAll(x => x.CustomName.Contains(ignoretag));
+    doors.RemoveAll(x => {
+        string subtype = x.BlockDefinition.SubtypeId.ToString();
+        if(subtype == "LargeBlockGate" || subtype == "LargeBlockOffsetDoor") return true;
+        return x.CustomName.Contains(ignoretag);
+    });
+    Pistons.RemoveAll(x => x.CustomName.Contains(ignoretag));
+    Connectors.RemoveAll(x => x.CustomName.Contains(ignoretag));
+    MergeBlocks.RemoveAll(x => x.CustomName.Contains(ignoretag));
 
     //find new drives, doesn't delete old ones
     InitDampeners();
