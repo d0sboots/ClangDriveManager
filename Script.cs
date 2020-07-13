@@ -474,20 +474,23 @@ void ErrorHandler()
 
 void EchoFunction()
 {
-    Echo("Instruction Count: " + Runtime.CurrentInstructionCount.ToString());  //debug, shows current instructions
     runtime.Enqueue((float) Runtime.LastRunTimeMs);
-    Echo("Runtime: " + string.Format("{0:0.000}", runtime.Avg) );
-    Echo("Speedlimit: " + string.Format("{0:0.0}", speedlimit));
-    Echo("ShipController: " + ShipReference.CustomName);
-    Echo("Dampeners found: " + (MergeDampeners.Count()).ToString());
-    Echo("Merge Drives found: " + MergeDrives.Count().ToString());
-    Echo("Piston Drives found: " + PistonDrives.Count().ToString());
-    Echo("Mass Shifting Drives found: " + MassDrives.Count().ToString());
-    Echo("");
-    for(int i=0; i<MergeDrives.Count; i++) Echo("Merge Drive " + (i+1).ToString() + ": " + MergeDrives[i].orientation);
-    for(int i=0; i<PistonDrives.Count; i++) Echo("Piston Drive " + (i+1).ToString() + ": " + PistonDrives[i].orientation);
-    for(int i=0; i<MassDrives.Count; i++) Echo("Mass Drive " + (i+1).ToString() + ": " + MassDrives[i].orientation);
-    for(int i=0; i<MergeDampeners.Count; i++) Echo("Dampener " + (i+1).ToString() + ": " + MergeDampeners[i].orientation);
+    // Using a single interpolated string is faster and easier to read.
+    Echo(
+$@"Instruction Count: {Runtime.CurrentInstructionCount}
+Runtime: {runtime.Avg:0.000}
+Speedlimit: {speedlimit:0.0}
+ShipController: {ShipReference.CustomName}
+Dampeners found: {MergeDampeners.Count}
+Merge Drives found: {MergeDrives.Count}
+Piston Drives found: {PistonDrives.Count}
+Mass Shifting Drives found: {MassDrives.Count}
+");
+
+    for(int i=0; i<MergeDrives.Count; i++) Echo($"Merge Drive {i+1}: {MergeDrives[i].orientation}");
+    for(int i=0; i<PistonDrives.Count; i++) Echo($"Piston Drive {i+1}: {PistonDrives[i].orientation}");
+    for(int i=0; i<MassDrives.Count; i++) Echo($"Mass Drive {i+1}: {MassDrives[i].orientation}");
+    for(int i=0; i<MergeDampeners.Count; i++) Echo($"Dampener {i+1}: {MergeDampeners[i].orientation}");
 }
 
 void SmartPower()
