@@ -927,7 +927,7 @@ public class MergeDrive
                 bool tempconnected = true;
                 for(int i=0; i<MergeBlocks.Count;i++) if(MergeBlocks[i].IsConnected==false) tempconnected=false;    //only shoot out if all merge blocks are linked
 
-                if(Rotors[0].GetValue<float>("Displacement")>-0.35)
+                if(Rotors[0].Displacement>-0.35)
                 {
                     tick--;     //skips if rotors are not fully retracted for some reason (and then rully retract them)
                     break;
@@ -942,12 +942,12 @@ public class MergeDrive
 
             case 2:
                 for(int i=0; i<MergeBlocks.Count;i++) MergeBlocks[i].Enabled=false;   //turn off merge block, else backwards acceleration
-                retract(Rotors, (float) ( (Rotors[0].GetValue<float>("Displacement")+0.4)/2));  //retract half the remaining way
+                retract(Rotors, (float) ( (Rotors[0].Displacement+0.4)/2));  //retract half the remaining way
                 tick--; //reset firing cycle
                 break;
 
             case 1:
-                retract(Rotors, (float) ((Rotors[0].GetValue<float>("Displacement")+0.4)/2));   //retract half the remaining way, split over two ticks for safety
+                retract(Rotors, (float) ((Rotors[0].Displacement+0.4)/2));   //retract half the remaining way, split over two ticks for safety
                 tick=3; //reset firing cycle
                 break;
         }
@@ -963,16 +963,13 @@ public class MergeDrive
     {
         for(int i = 0; i < roto.Count; i++)
         {
-            roto[i].SetValue("Displacement", roto[i].GetValue<float>("Displacement")+ (float) travel);      //extends by travel
+            roto[i].Displacement += travel;
         }
     }
 
     private void retract (List<IMyMotorStator> roto, float travel)
     {
-        for(int i = 0; i < roto.Count; i++)
-        {
-            roto[i].SetValue("Displacement", roto[i].GetValue<float>("Displacement")- (float) travel);     //retracts by travel
-        }
+        extend(roto, -travel);
     }
 }
 
@@ -1092,12 +1089,12 @@ public class MassDrive
 
     public float FigureMaxDisplacement()
     {
-        float tempold = Rotors[0].GetValue<float>("Displacement");
-        Rotors[0].SetValue("Displacement",(float) 100);
-        float temphigh = Rotors[0].GetValue<float>("Displacement");
-        Rotors[0].SetValue("Displacement", (float) -100);
-        float templow = Rotors[0].GetValue<float>("Displacement");
-        Rotors[0].SetValue("Displacement",(float) tempold);
+        float tempold = Rotors[0].Displacement;
+        Rotors[0].Displacement = 100f;
+        float temphigh = Rotors[0].Displacement;
+        Rotors[0].Displacement = -100f;
+        float templow = Rotors[0].Displacement;
+        Rotors[0].Displacement = tempold;
 
         return temphigh-templow;
     }
@@ -1181,16 +1178,13 @@ public class MassDrive
     {
         for(int i = 0; i < roto.Count; i++)
         {
-            roto[i].SetValue("Displacement", roto[i].GetValue<float>("Displacement")+ (float) travel);      //extends by travel
+            roto[i].Displacement += travel;
         }
     }
 
     private void retract (List<IMyMotorStator> roto, float travel)
     {
-        for(int i = 0; i < roto.Count; i++)
-        {
-            roto[i].SetValue("Displacement", roto[i].GetValue<float>("Displacement")- (float) travel);     //retracts by travel
-        }
+        extend(roto, -travel);
     }
 }
 
