@@ -50,7 +50,7 @@ double[] ramp = {0,0,0,0,0,0}; bool autospeedlimit; bool toocomplex=false;
 
 //block lists
 List<IMyShipConnector> Connectors; List<IMyExtendedPistonBase> Pistons; List<IMyCargoContainer> Cargos;  //all necessary blocks used in drives
-List<IMyAssembler> Assemblers; List<IMyMotorBase> Rotors; List<IMyShipMergeBlock> MergeBlocks;
+List<IMyAssembler> Assemblers; List<IMyMotorStator> Rotors; List<IMyShipMergeBlock> MergeBlocks;
 List<IMyDoor> doors;
 
 //cockpit
@@ -102,8 +102,8 @@ void Init()
     MergeBlocks = new List<IMyShipMergeBlock>();
     GridTerminalSystem.GetBlocksOfType<IMyShipMergeBlock>(MergeBlocks);
 
-    Rotors = new List<IMyMotorBase>();
-    GridTerminalSystem.GetBlocksOfType<IMyMotorBase>(Rotors);
+    Rotors = new List<IMyMotorStator>();
+    GridTerminalSystem.GetBlocksOfType<IMyMotorStator>(Rotors);
 
     Pistons = new List<IMyExtendedPistonBase>();
     GridTerminalSystem.GetBlocksOfType<IMyExtendedPistonBase>(Pistons);
@@ -153,11 +153,6 @@ void Init()
 
     for(int i = doors.Count-1; i>-1; i--)
     {
-        if(doors[i].BlockDefinition.SubtypeId.ToString() == "LargeBlockGate" || doors[i].BlockDefinition.SubtypeId.ToString() == "LargeBlockOffsetDoor")
-        {
-            doors.RemoveAt(i); //remove not useful doors
-            continue;
-        }
         if(doors[i].CustomName.Contains(ignoretag)) doors.RemoveAt(i);
     }
 
@@ -214,8 +209,8 @@ void InitMergeDrives()
             break;
         }
 
-        List<IMyMotorBase> RotorsTemp = new List<IMyMotorBase>();   //rotor stack on subgrid
-        IMyMotorBase MainRotor = null;      //rotor on main grid
+        List<IMyMotorStator> RotorsTemp = new List<IMyMotorStator>();   //rotor stack on subgrid
+        IMyMotorStator MainRotor = null;      //rotor on main grid
         List<IMyShipMergeBlock> MergeTemp = new List<IMyShipMergeBlock>();  //merge stack on subgrid
         //IMyShipMergeBlock MainMerge = null;       //merge on main grid, not used by script, always on
         IMyShipConnector ConnectorTemp = null;  //connector on subgrid
@@ -372,7 +367,7 @@ void InitMassDrives()
                     {
                         int tempindex = k;
                         bool done = false;
-                        List<IMyMotorBase> RotorsTemp = new List<IMyMotorBase>();
+                        List<IMyMotorStator> RotorsTemp = new List<IMyMotorStator>();
                         RotorsTemp.Add(Rotors[k]);
 
                         while(done==false)  //do this until no more rotors are in line, usually just once (until one more is found)
@@ -412,7 +407,7 @@ void InitDampeners()
         }
         if(MergeBlocks[i].CubeGrid==ShipReference.CubeGrid) continue;   //check if on main grid, then abort
 
-        List<IMyMotorBase> RotorsTemp = new List<IMyMotorBase>();   //rotor stack, just checks for a single one of both
+        List<IMyMotorStator> RotorsTemp = new List<IMyMotorStator>();   //rotor stack, just checks for a single one of both
         List<IMyShipMergeBlock> MergeTemp = new List<IMyShipMergeBlock>();  //merge stack on subgrid
 
         MergeTemp.Add(MergeBlocks[i]);
@@ -829,10 +824,10 @@ void InertialDampen()
 //class for all merge drives (MPD-1, not MPD-2x4(old))
 public class MergeDrive
 {
-    private List<IMyMotorBase> Rotors; public List<IMyShipMergeBlock> MergeBlocks; public IMyShipConnector MainConnector, SubConnector; int tick, wiggle; public string orientation;
-    public bool active; private IMyMotorBase MainRotor;
+    private List<IMyMotorStator> Rotors; public List<IMyShipMergeBlock> MergeBlocks; public IMyShipConnector MainConnector, SubConnector; int tick, wiggle; public string orientation;
+    public bool active; private IMyMotorStator MainRotor;
 
-    public MergeDrive(List<IMyMotorBase> protors, List<IMyShipMergeBlock> pmerge, IMyShipConnector pmainconnector,IMyShipConnector pconnector, IMyMotorBase pmainrotor) //contructor to asign rotors and merge blocks and figure out orientation
+    public MergeDrive(List<IMyMotorStator> protors, List<IMyShipMergeBlock> pmerge, IMyShipConnector pmainconnector,IMyShipConnector pconnector, IMyMotorStator pmainrotor) //contructor to asign rotors and merge blocks and figure out orientation
     {
         wiggle=0;
         orientation="not defined";
@@ -964,7 +959,7 @@ public class MergeDrive
         for(int i=0; i<MergeBlocks.Count;i++) MergeBlocks[i].Enabled=false;
     }
 
-    private void extend (List<IMyMotorBase> roto, float travel)
+    private void extend (List<IMyMotorStator> roto, float travel)
     {
         for(int i = 0; i < roto.Count; i++)
         {
@@ -972,7 +967,7 @@ public class MergeDrive
         }
     }
 
-    private void retract (List<IMyMotorBase> roto, float travel)
+    private void retract (List<IMyMotorStator> roto, float travel)
     {
         for(int i = 0; i < roto.Count; i++)
         {
@@ -1068,10 +1063,10 @@ public class PistonDrive
 public class MassDrive
 {
     public bool active; double revpower; public bool reverse; double safety;
-    public List<IMyMotorBase> Rotors; int tick; public string orientation; int deadmass;
+    public List<IMyMotorStator> Rotors; int tick; public string orientation; int deadmass;
     public IMyTerminalBlock BaseBlock, TopBlock; double maxdisplacement;
 
-    public MassDrive(List<IMyMotorBase> pRotors, IMyTerminalBlock pBase, IMyTerminalBlock pTop, double prevpower) //contructor to asign rotors and merge blocks and figure out orientation
+    public MassDrive(List<IMyMotorStator> pRotors, IMyTerminalBlock pBase, IMyTerminalBlock pTop, double prevpower) //contructor to asign rotors and merge blocks and figure out orientation
     {
         revpower = prevpower;
         orientation="not defined";
@@ -1182,7 +1177,7 @@ public class MassDrive
         if(Rotors[0].Orientation.Up==ShipController.Orientation.Left) orientation="right";
     }
 
-    private void extend (List<IMyMotorBase> roto, float travel)
+    private void extend (List<IMyMotorStator> roto, float travel)
     {
         for(int i = 0; i < roto.Count; i++)
         {
@@ -1190,7 +1185,7 @@ public class MassDrive
         }
     }
 
-    private void retract (List<IMyMotorBase> roto, float travel)
+    private void retract (List<IMyMotorStator> roto, float travel)
     {
         for(int i = 0; i < roto.Count; i++)
         {
@@ -1202,9 +1197,9 @@ public class MassDrive
 //class for all merge dampeners (MID-6-3, not MID-6(old) or MID-6-2(old))
 public class MergeDampener
 {
-    public List<IMyMotorBase> Rotors; public List<IMyShipMergeBlock> MergeBlocks; public string orientation;
+    public List<IMyMotorStator> Rotors; public List<IMyShipMergeBlock> MergeBlocks; public string orientation;
 
-    public MergeDampener(List<IMyShipMergeBlock> pmerge, List<IMyMotorBase> protors)
+    public MergeDampener(List<IMyShipMergeBlock> pmerge, List<IMyMotorStator> protors)
     {
         orientation="not defined";
         Rotors = protors;
