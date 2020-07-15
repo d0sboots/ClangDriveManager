@@ -250,7 +250,7 @@ void InitMergeDrives()
                     }
                 }
 
-                if(ConnectorTemp!=null && MainConnector!=null && RotorsTemp.Any() && MergeTemp.Any())
+                if(ConnectorTemp!=null && MainConnector!=null && MainRotor!=null && RotorsTemp.Any() && MergeTemp.Any())
                 {
                     MergeDrives.Add(new MergeDrive(RotorsTemp,MergeTemp,MainConnector,ConnectorTemp, MainRotor));     //give drive its corresponding blocks
                     break;  //found fitting drive, no need to iterate through the rest
