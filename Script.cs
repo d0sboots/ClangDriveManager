@@ -535,9 +535,13 @@ void SmartPower()
         //check if any active drives in this direction
         bool active = false;
 
-        for(int k = 0; k < MergeDrives.Count; k++)
-            if(MergeDrives[k].orientation==orient[i])
-                if(MergeDrives[k].active==true) active=true;
+        foreach(MergeDrive drive in MergeDrives)
+        {
+            if(drive.orientation==orient[i])
+                if(drive.active==true && drive.reverse==false) active=true;
+            if(drive.orientation==orientreverse[i])
+                if(drive.active==true && drive.reverse==true) active=true;
+        }
 
         for(int k = 0; k < MassDrives.Count; k++)
         {
@@ -634,63 +638,87 @@ void Argumenthandler(string args)
             {
                 foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="right") drive.FireDrive(power_tri);
                 foreach(MassDrive drive in MassDrives)
+                {
                     if(drive.orientation=="right") drive.FireDrive(power_tri,false);
-                foreach(MassDrive drive in MassDrives)
                     if(drive.orientation=="left") drive.FireDrive(power_tri,true);
+                }
                 foreach(MergeDrive drive in MergeDrives)
-                    if(drive.orientation=="right") drive.FireDrive(power_tri);
+                {
+                    if(drive.orientation=="right") drive.FireDrive(power_tri,false);
+                    if(drive.orientation=="left") drive.FireDrive(power_tri,true);
+                }
             }
             if(ShipReference.MoveIndicator.X==-1)
             {
                 foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="left") drive.FireDrive(power_tle);
                 foreach(MassDrive drive in MassDrives)
+                {
                     if(drive.orientation=="left") drive.FireDrive(power_tle,false);
-                foreach(MassDrive drive in MassDrives)
                     if(drive.orientation=="right") drive.FireDrive(power_tle,true);
+                }
                 foreach(MergeDrive drive in MergeDrives)
-                    if(drive.orientation=="left") drive.FireDrive(power_tle);
+                {
+                    if(drive.orientation=="left") drive.FireDrive(power_tle,false);
+                    if(drive.orientation=="right") drive.FireDrive(power_tle,true);
+                }
             }
 
             if(ShipReference.MoveIndicator.Y==1)
             {
                 foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="up") drive.FireDrive(power_tup);
                 foreach(MassDrive drive in MassDrives)
+                {
                     if(drive.orientation=="up") drive.FireDrive(power_tup,false);
-                foreach(MassDrive drive in MassDrives)
                     if(drive.orientation=="down") drive.FireDrive(power_tup,true);
+                }
                 foreach(MergeDrive drive in MergeDrives)
-                    if(drive.orientation=="up") drive.FireDrive(power_tup);
+                {
+                    if(drive.orientation=="up") drive.FireDrive(power_tup,false);
+                    if(drive.orientation=="down") drive.FireDrive(power_tup,true);
+                }
             }
             if(ShipReference.MoveIndicator.Y==-1)
             {
                 foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="down") drive.FireDrive(power_tdo);
                 foreach(MassDrive drive in MassDrives)
+                {
                     if(drive.orientation=="down") drive.FireDrive(power_tdo,false);
-                foreach(MassDrive drive in MassDrives)
                     if(drive.orientation=="up") drive.FireDrive(power_tdo,true);
+                }
                 foreach(MergeDrive drive in MergeDrives)
-                    if(drive.orientation=="down") drive.FireDrive(power_tdo);
+                {
+                    if(drive.orientation=="down") drive.FireDrive(power_tdo,false);
+                    if(drive.orientation=="up") drive.FireDrive(power_tdo,true);
+                }
             }
 
             if(ShipReference.MoveIndicator.Z==1)
             {
                 foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="backward") drive.FireDrive(power_tba);
                 foreach(MassDrive drive in MassDrives)
+                {
                     if(drive.orientation=="backward") drive.FireDrive(power_tba,false);
-                foreach(MassDrive drive in MassDrives)
                     if(drive.orientation=="forward") drive.FireDrive(power_tba,true);
+                }
                 foreach(MergeDrive drive in MergeDrives)
-                    if(drive.orientation=="backward") drive.FireDrive(power_tba);
+                {
+                    if(drive.orientation=="backward") drive.FireDrive(power_tba,false);
+                    if(drive.orientation=="forward") drive.FireDrive(power_tba,true);
+                }
             }
             if(ShipReference.MoveIndicator.Z==-1)
             {
                 foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="forward") drive.FireDrive(power_tfo);
                 foreach(MassDrive drive in MassDrives)
+                {
                     if(drive.orientation=="forward") drive.FireDrive(power_tfo,false);
-                foreach(MassDrive drive in MassDrives)
                     if(drive.orientation=="backward") drive.FireDrive(power_tfo,true);
+                }
                 foreach(MergeDrive drive in MergeDrives)
-                    if(drive.orientation=="forward") drive.FireDrive(power_tfo);
+                {
+                    if(drive.orientation=="forward") drive.FireDrive(power_tfo,false);
+                    if(drive.orientation=="backward") drive.FireDrive(power_tfo,true);
+                }
             }
 
 
@@ -707,9 +735,20 @@ void Argumenthandler(string args)
         }
         else if(mode=="manual")     //drive handled by arguments
         {
-            foreach(MergeDrive drive in MergeDrives) if(drive.orientation=="forward") drive.FireDrive(power); //fires only the forwards drives in manual mode if toggled on
-            foreach(MassDrive drive in MassDrives) if(drive.orientation=="forward") drive.FireDrive(power,false); //fires only the forwards drives in manual mode if toggled on
-            foreach(MassDrive drive in MassDrives) if(drive.orientation=="backward") drive.FireDrive(power,true);
+            foreach(MergeDrive drive in MergeDrives)
+            {
+                if(drive.orientation=="forward")
+                    drive.FireDrive(power, false);
+                if(drive.orientation=="backward")
+                    drive.FireDrive(power, true);
+            }
+            foreach(MassDrive drive in MassDrives)
+            {
+                if(drive.orientation=="forward")
+                    drive.FireDrive(power, false);
+                if(drive.orientation=="backward")
+                    drive.FireDrive(power, true);
+            }
             foreach(PistonDrive drive in PistonDrives) if(drive.orientation=="forward") drive.FireDrive(power);
         }
     }
@@ -729,24 +768,32 @@ void InertialDampen()
         {
             //adjusts power/retraction distance by Control value from PID_Controller
             foreach(MergeDrive drive in MergeDrives)
-                if(drive.orientation=="right") drive.FireDrive(dampeningstrength*power_tri*Math.Abs(PID_Local.X));
+            {
+                if(drive.orientation=="right") drive.FireDrive(dampeningstrength*power_tri*Math.Abs(PID_Local.X),false);
+                if(drive.orientation=="left") drive.FireDrive(dampeningstrength*power_tri*Math.Abs(PID_Local.X),true);
+            }
             foreach(PistonDrive drive in PistonDrives)
                 if(drive.orientation=="right") drive.FireDrive(dampeningstrength*power_tri*Math.Abs(PID_Local.X));
             foreach(MassDrive drive in MassDrives)
+            {
                 if(drive.orientation=="right") drive.FireDrive(dampeningstrength*power_tri*Math.Abs(PID_Local.X),false);
-            foreach(MassDrive drive in MassDrives)
                 if(drive.orientation=="left") drive.FireDrive(dampeningstrength*power_tri*Math.Abs(PID_Local.X),true);
+            }
         }
         else if(PID_Local.X>0)
         {
             foreach(MergeDrive drive in MergeDrives)
-                if(drive.orientation=="left") drive.FireDrive(dampeningstrength*power_tle*Math.Abs(PID_Local.X));
+            {
+                if(drive.orientation=="left") drive.FireDrive(dampeningstrength*power_tle*Math.Abs(PID_Local.X),false);
+                if(drive.orientation=="right") drive.FireDrive(dampeningstrength*power_tle*Math.Abs(PID_Local.X),true);
+            }
             foreach(PistonDrive drive in PistonDrives)
                 if(drive.orientation=="left") drive.FireDrive(dampeningstrength*power_tle*Math.Abs(PID_Local.X));
             foreach(MassDrive drive in MassDrives)
+            {
                 if(drive.orientation=="left") drive.FireDrive(dampeningstrength*power_tle*Math.Abs(PID_Local.X),false);
-            foreach(MassDrive drive in MassDrives)
                 if(drive.orientation=="right") drive.FireDrive(dampeningstrength*power_tle*Math.Abs(PID_Local.X),true);
+            }
         }
     }
     if(ShipReference.MoveIndicator.Y==0)    //up down axis
@@ -754,24 +801,32 @@ void InertialDampen()
         if(PID_Local.Y>0)
         {
             foreach(MergeDrive drive in MergeDrives)
-                if(drive.orientation=="down") drive.FireDrive(dampeningstrength*power_tdo*Math.Abs(PID_Local.Y));
+            {
+                if(drive.orientation=="down") drive.FireDrive(dampeningstrength*power_tdo*Math.Abs(PID_Local.Y),false);
+                if(drive.orientation=="up") drive.FireDrive(dampeningstrength*power_tdo*Math.Abs(PID_Local.Y),true);
+            }
             foreach(PistonDrive drive in PistonDrives)
                 if(drive.orientation=="down") drive.FireDrive(dampeningstrength*power_tdo*Math.Abs(PID_Local.Y));
             foreach(MassDrive drive in MassDrives)
+            {
                 if(drive.orientation=="down") drive.FireDrive(dampeningstrength*power_tdo*Math.Abs(PID_Local.Y),false);
-            foreach(MassDrive drive in MassDrives)
                 if(drive.orientation=="up") drive.FireDrive(dampeningstrength*power_tdo*Math.Abs(PID_Local.Y),true);
+            }
         }
         else if(PID_Local.Y<0)
         {
             foreach(MergeDrive drive in MergeDrives)
-                if(drive.orientation=="up") drive.FireDrive(dampeningstrength*power_tup*Math.Abs(PID_Local.Y));
+            {
+                if(drive.orientation=="up") drive.FireDrive(dampeningstrength*power_tup*Math.Abs(PID_Local.Y),false);
+                if(drive.orientation=="down") drive.FireDrive(dampeningstrength*power_tup*Math.Abs(PID_Local.Y),true);
+            }
             foreach(PistonDrive drive in PistonDrives)
                 if(drive.orientation=="up") drive.FireDrive(dampeningstrength*power_tup*Math.Abs(PID_Local.Y));
             foreach(MassDrive drive in MassDrives)
+            {
                 if(drive.orientation=="up") drive.FireDrive(dampeningstrength*power_tup*Math.Abs(PID_Local.Y),false);
-            foreach(MassDrive drive in MassDrives)
                 if(drive.orientation=="down") drive.FireDrive(dampeningstrength*power_tup*Math.Abs(PID_Local.Y),true);
+            }
         }
     }
     if(ShipReference.MoveIndicator.Z==0)    //forward backward axis
@@ -779,24 +834,32 @@ void InertialDampen()
         if(PID_Local.Z<0)
         {
             foreach(MergeDrive drive in MergeDrives)
-                if(drive.orientation=="backward") drive.FireDrive(dampeningstrength*power_tba*Math.Abs(PID_Local.Z));
+            {
+                if(drive.orientation=="backward") drive.FireDrive(dampeningstrength*power_tba*Math.Abs(PID_Local.Z),false);
+                if(drive.orientation=="forward") drive.FireDrive(dampeningstrength*power_tba*Math.Abs(PID_Local.Z),true);
+            }
             foreach(PistonDrive drive in PistonDrives)
                 if(drive.orientation=="backward") drive.FireDrive(dampeningstrength*power_tba*Math.Abs(PID_Local.Z));
             foreach(MassDrive drive in MassDrives)
+            {
                 if(drive.orientation=="backward") drive.FireDrive(dampeningstrength*power_tba*Math.Abs(PID_Local.Z),false);
-            foreach(MassDrive drive in MassDrives)
                 if(drive.orientation=="forward") drive.FireDrive(dampeningstrength*power_tba*Math.Abs(PID_Local.Z),true);
+            }
         }
         else if(PID_Local.Z>0)
         {
             foreach(MergeDrive drive in MergeDrives)
-                if(drive.orientation=="forward") drive.FireDrive(dampeningstrength*power_tfo*Math.Abs(PID_Local.Z));
+            {
+                if(drive.orientation=="forward") drive.FireDrive(dampeningstrength*power_tfo*Math.Abs(PID_Local.Z),false);
+                if(drive.orientation=="backward") drive.FireDrive(dampeningstrength*power_tfo*Math.Abs(PID_Local.Z),true);
+            }
             foreach(PistonDrive drive in PistonDrives)
                 if(drive.orientation=="forward") drive.FireDrive(dampeningstrength*power_tfo*Math.Abs(PID_Local.Z));
             foreach(MassDrive drive in MassDrives)
+            {
                 if(drive.orientation=="forward") drive.FireDrive(dampeningstrength*power_tfo*Math.Abs(PID_Local.Z),false);
-            foreach(MassDrive drive in MassDrives)
                 if(drive.orientation=="backward") drive.FireDrive(dampeningstrength*power_tfo*Math.Abs(PID_Local.Z),true);
+            }
         }
     }
 }
@@ -807,12 +870,13 @@ public class MergeDrive
 {
     private List<IMyMotorStator> Rotors; public List<IMyShipMergeBlock> MergeBlocks; public IMyShipConnector MainConnector, SubConnector; int tick, wiggle; public string orientation;
     public bool active; private IMyMotorStator MainRotor;
+    public bool reverse;
 
     public MergeDrive(List<IMyMotorStator> protors, List<IMyShipMergeBlock> pmerge, IMyShipConnector pmainconnector,IMyShipConnector pconnector, IMyMotorStator pmainrotor) //contructor to asign rotors and merge blocks and figure out orientation
     {
         wiggle=0;
         orientation="not defined";
-        tick=3;     //drive needs 2 ticks to fire, 1 for extending rotor, 1 for retracting
+        tick=2;     //drive needs 2 ticks to fire, 1 for extending rotor, 1 for retracting
         Rotors = protors;
         MainRotor = pmainrotor;
         MergeBlocks = pmerge;
@@ -896,40 +960,60 @@ public class MergeDrive
         }
     }
 
-    public void FireDrive(double pMag)      //overload of FireDrive with adjusted retraction distance for less power, is used for inertial dampening, also needs axis to give to pid_controller
+    public void FireDrive(double pMag, bool preverse)      //overload of FireDrive with adjusted retraction distance for less power, is used for inertial dampening
     {
+        if (pMag < .01)
+        {
+          StopDrive();  // Prevent infinite twitching when dampening
+          return;
+        }
+
         active=true;
-        if(tick>3) tick--;
+        reverse=preverse;
+        // (.6 - .5 * pMag) / 2, i.e.  center the range and find the amount of margin needed on one side
+        float margin=(float) (0.3-0.25*pMag);
+
         switch(tick)
         {
-            case 3:
+            case 2:
                 for(int i=0; i<MergeBlocks.Count;i++) MergeBlocks[i].Enabled=true;
                 Wiggle();   //helps link merge blocks faster
-                bool tempconnected = true;
-                for(int i=0; i<MergeBlocks.Count;i++) if(MergeBlocks[i].IsConnected==false) tempconnected=false;    //only shoot out if all merge blocks are linked
-
-                if(Rotors[0].Displacement>-0.35)
+                for(int i=0; i<MergeBlocks.Count;i++)
                 {
-                    tick--;     //skips if rotors are not fully retracted for some reason (and then rully retract them)
-                    break;
+                  if(MergeBlocks[i].IsConnected==false)    //only shoot out if all merge blocks are linked
+                    return;
                 }
 
-                if(tempconnected == true)        //Drive shoots out if all merge blocks are linked
-                {
-                   tick--;
-                   extend(Rotors, (float) (0.5 * pMag));    //extend rotors with pMag as percentage
+                // Keep each rotor to safety margins, otherwise go as far as requested.
+                float stride=(float) (0.5*pMag);
+                float clipped_margin=(margin > .05f)?.05f:margin;
+                float target2=reverse?clipped_margin-0.4f:0.2f-clipped_margin;
+                foreach(IMyMotorStator rotor in Rotors) {
+                  float target1=rotor.Displacement;
+                  if(reverse) {
+                    target1 -= stride;
+                    if (target1<target2) target1=target2;
+                  } else {
+                    target1 += stride;
+                    if (target1>target2) target1=target2;
+                  }
+                  rotor.Displacement=target1;
                 }
-                break;
-
-            case 2:
-                for(int i=0; i<MergeBlocks.Count;i++) MergeBlocks[i].Enabled=false;   //turn off merge block, else backwards acceleration
-                retract(Rotors, (float) ( (Rotors[0].Displacement+0.4)/2));  //retract half the remaining way
-                tick--; //reset firing cycle
+                tick=1;
                 break;
 
             case 1:
-                retract(Rotors, (float) ((Rotors[0].Displacement+0.4)/2));   //retract half the remaining way, split over two ticks for safety
-                tick=3; //reset firing cycle
+                wiggle=0;
+                for(int i=0; i<MergeBlocks.Count;i++) MergeBlocks[i].Enabled=false;   //turn off merge block, else backwards acceleration
+                // Return assuming the next stroke will be the same size as this one.
+                foreach(IMyMotorStator rotor in Rotors) {
+                  rotor.Displacement=reverse?0.2f-margin:margin-0.4f;
+                }
+                tick=2;
+                break;
+
+            default:
+                tick=2;
                 break;
         }
     }
@@ -938,19 +1022,6 @@ public class MergeDrive
     {
         active=false;
         for(int i=0; i<MergeBlocks.Count;i++) MergeBlocks[i].Enabled=false;
-    }
-
-    private void extend (List<IMyMotorStator> roto, float travel)
-    {
-        for(int i = 0; i < roto.Count; i++)
-        {
-            roto[i].Displacement += travel;
-        }
-    }
-
-    private void retract (List<IMyMotorStator> roto, float travel)
-    {
-        extend(roto, -travel);
     }
 }
 
