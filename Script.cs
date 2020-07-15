@@ -486,6 +486,10 @@ Merge Drives found: {MergeDrives.Count}
 Piston Drives found: {PistonDrives.Count}
 Mass Shifting Drives found: {MassDrives.Count}
 ");
+//Power: F: {power_tfo} B: {power_tba}
+//U: {power_tup} D: {power_tdo}
+//L: {power_tle} R: {power_tri}
+//");
 
     for(int i=0; i<MergeDrives.Count; i++) Echo($"Merge Drive {i+1}: {MergeDrives[i].orientation}");
     for(int i=0; i<PistonDrives.Count; i++) Echo($"Piston Drive {i+1}: {PistonDrives[i].orientation}");
@@ -523,7 +527,7 @@ void SmartPower()
     for(int i=0; i<6;i++)
     {
         //slowly ramps up thrust to prevent high jerk
-        if(ramp[i]<1)
+        if(ramp[i]<.99)  // Won't be exactly 1 due to rounding
         {
             ramp[i]=ramp[i]+0.08;
         }
@@ -717,6 +721,7 @@ void InertialDampen()
 
     //creates vector with Controller values based on the local ship speed
     Vector3D PID_Local = new Vector3D(myControllerX.CalcValue(speedLocal.X),myControllerY.CalcValue(speedLocal.Y),myControllerZ.CalcValue(speedLocal.Z));
+    //Echo($"Damping: ({PID_Local.X}, {PID_Local.Y}, {PID_Local.Z})");
 
     if(ShipReference.MoveIndicator.X==0)    //right left axis, only dampen when axis is not used by WASD
     {
