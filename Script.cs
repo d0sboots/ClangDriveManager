@@ -497,10 +497,10 @@ void SmartPower()
 {
     //Power drop off between 85% and 95% of speedlimit from 1 to 0
     //Power_t is clamped to power and 0
-    power_tle=(9.5-10*(speedLocal.X/speedlimit))*power;
+    power_tle=(9.5-10*(-speedLocal.X/speedlimit))*power;
     if(power_tle>power) power_tle=power; else if(power_tle<0) power_tle=0;
 
-    power_tri=(9.5-10*(-speedLocal.X/speedlimit))*power;
+    power_tri=(9.5-10*(speedLocal.X/speedlimit))*power;
     if(power_tri>power) power_tri=power; else if(power_tri<0) power_tri=0;
 
     power_tup=(9.5-10*(speedLocal.Y/speedlimit))*power;
