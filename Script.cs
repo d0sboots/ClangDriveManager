@@ -48,6 +48,9 @@ bool idle; MyMovingAverage runtime = new MyMovingAverage(5,5);
 Vector3D speedGlobal, speedLocal; double power_tfo, power_tba, power_tri, power_tle, power_tup, power_tdo;
 double[] ramp = {0,0,0,0,0,0}; bool autospeedlimit; bool toocomplex=false;
 
+static readonly string[] orientations = {"left","right","down","up","forward","backward"};
+static readonly string[] orientreverse = {"right","left","up","down","backward","forward"};
+
 //block lists
 List<IMyShipConnector> Connectors; List<IMyExtendedPistonBase> Pistons; List<IMyCargoContainer> Cargos;  //all necessary blocks used in drives
 List<IMyAssembler> Assemblers; List<IMyMotorStator> Rotors; List<IMyShipMergeBlock> MergeBlocks;
@@ -521,9 +524,6 @@ void SmartPower()
 
 
     //power ramp up after inactive, takes 10 ticks from 20% to 100% power, multiplies with power_t
-    string[] orient = {"left","right","down","up","forward","backward"};
-    string[] orientreverse = {"right","left","up","down","backward","forward"};
-
     for(int i=0; i<6;i++)
     {
         //slowly ramps up thrust to prevent high jerk
@@ -537,7 +537,7 @@ void SmartPower()
 
         foreach(MergeDrive drive in MergeDrives)
         {
-            if(drive.orientation==orient[i])
+            if(drive.orientation==orientations[i])
                 if(drive.active==true && drive.reverse==false) active=true;
             if(drive.orientation==orientreverse[i])
                 if(drive.active==true && drive.reverse==true) active=true;
@@ -545,14 +545,14 @@ void SmartPower()
 
         for(int k = 0; k < MassDrives.Count; k++)
         {
-            if(MassDrives[k].orientation==orient[i])
+            if(MassDrives[k].orientation==orientations[i])
                 if(MassDrives[k].active==true && MassDrives[k].reverse==false) active=true;
             if(MassDrives[k].orientation==orientreverse[i])
                 if(MassDrives[k].active==true && MassDrives[k].reverse==true) active=true;
         }
 
         for(int k = 0; k < PistonDrives.Count; k++)
-            if(PistonDrives[k].orientation==orient[i])
+            if(PistonDrives[k].orientation==orientations[i])
                 if(PistonDrives[k].active==true) active=true;
 
         if(active==false) ramp[i]=0.2;  //reset ramp to 20% if all drives in direction are inactive
@@ -925,24 +925,20 @@ public class MergeDrive
 
     public void FigureOrientation(IMyCockpit ShipController)
     {
-        Vector3 Distance = new Vector3(0,0,0);
-        if(MainConnector.Orientation.Up==ShipController.Orientation.Forward || MainConnector.Orientation.Up==Base6Directions.GetOppositeDirection(ShipController.Orientation.Forward))
+        // Drive pushes in the reverse direction of the rotors
+        Vector3D drive_forward=Rotors[0].WorldMatrix.Down;
+        MatrixD world_matrix=ShipController.WorldMatrix;
+        Vector3D[] world_dirs={world_matrix.Left, world_matrix.Right, world_matrix.Down, world_matrix.Up, world_matrix.Forward, world_matrix.Backward};
+        double best=0.0;
+        // Look for closest match on the main grid to the thrust vector
+        for(int i=0; i<6; ++i)
         {
-            Distance=Base6Directions.GetVector(ShipController.Orientation.Forward);
-            if(MainRotor.Position==MainConnector.Position+(Distance)) orientation="backward";
-            else if(MainRotor.Position==MainConnector.Position-(Distance)) orientation="forward";
-        }
-        else if(MainConnector.Orientation.Up==ShipController.Orientation.Up || MainConnector.Orientation.Up==Base6Directions.GetOppositeDirection(ShipController.Orientation.Up))
-        {
-            Distance=Base6Directions.GetVector(ShipController.Orientation.Up);
-            if(MainRotor.Position==MainConnector.Position+(Distance)) orientation="down";
-            else if(MainRotor.Position==MainConnector.Position-(Distance)) orientation="up";
-        }
-        else if(MainConnector.Orientation.Up==ShipController.Orientation.Left || MainConnector.Orientation.Up==Base6Directions.GetOppositeDirection(ShipController.Orientation.Left))
-        {
-            Distance=Base6Directions.GetVector(ShipController.Orientation.Left);
-            if(MainRotor.Position==MainConnector.Position+(Distance)) orientation="right";
-            else if(MainRotor.Position==MainConnector.Position-(Distance)) orientation="left";
+            double dot=drive_forward.Dot(world_dirs[i]);
+            if(dot>best)
+            {
+                best=dot;
+                orientation=orientations[i];
+            }
         }
     }
 
