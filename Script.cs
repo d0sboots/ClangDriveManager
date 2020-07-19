@@ -175,9 +175,36 @@ void FindController()
     if(!Controllers.Any()) { Echo("No Cockpit found!"); Echo(""); ShipReference = null; }
 }
 
+// Return single item from an IEnumerable, or default if there were 0 or more
+// than 1. Like SingleOrDefault(), but doesn't throw an exception on many.
+static T GetOnly<T>(IEnumerable<T> list)
+{
+    T result = default(T);
+    bool second = false;
+    foreach(var x in list)
+    {
+        if(second) return default(T);   // Too many elements
+        result = x;
+        second = true;
+    }
+    return result;
+}
+
 void InitMergeDrives()
 {
-    for(int i=0; i < MergeBlocks.Count(); i++)  //iterate through the merge blocks, each one can be the basis of a drive
+    // Construct some lookups so we can find things by grid quickly later
+    ILookup<long, IMyShipMergeBlock> MergeByGrid = MergeBlocks.ToLookup(x => x.CubeGrid.EntityId);
+    ILookup<long, IMyShipConnector> ConnectorsByGrid = Connectors.ToLookup(x => x.CubeGrid.EntityId);
+    // This will assign motors with no top to id 0, where they won't be looked up.
+    ILookup<long, IMyMotorStator> RotorBacktrace =
+        Rotors.ToLookup(x => x.TopGrid == null ? 0 : x.TopGrid.EntityId);
+    var used_merges = new HashSet<IMyShipMergeBlock>();
+    IMyCubeGrid MainGrid = ShipReference.CubeGrid;
+
+    foreach(MergeDrive drive in MergeDrives)
+        used_merges.UnionWith(drive.MergeBlocks);
+
+    foreach(IMyShipMergeBlock merge in MergeBlocks)  //iterate through the merge blocks, each one can be the basis of a drive
     {
         if(Runtime.CurrentInstructionCount > 40000)
         {
@@ -185,81 +212,70 @@ void InitMergeDrives()
             break;
         }
 
-        List<IMyMotorStator> RotorsTemp = new List<IMyMotorStator>();   //rotor stack on subgrid
+        if(merge.CubeGrid==MainGrid) continue;   //check if on main grid, then abort
+        if(used_merges.Contains(merge)) continue;   //check if already exists in any drive
+
         IMyMotorStator MainRotor = null;      //rotor on main grid
-        List<IMyShipMergeBlock> MergeTemp = new List<IMyShipMergeBlock>();  //merge stack on subgrid
         //IMyShipMergeBlock MainMerge = null;       //merge on main grid, not used by script, always on
-        IMyShipConnector ConnectorTemp = null;  //connector on subgrid
         IMyShipConnector MainConnector = null;  //connector on main grid
 
-        MergeTemp.Add(MergeBlocks[i]);
-        if(MergeBlocks[i].CubeGrid==ShipReference.CubeGrid) continue;   //check if on main grid, then abort
+        var SubgridRotor = GetOnly(RotorBacktrace[merge.CubeGrid.EntityId]);
+        if(SubgridRotor==null) continue;  // There should be exactly 1 rotor attached to the merge block
+        if(SubgridRotor.CubeGrid==MainGrid) continue;  // Rotor must be on subgrid
 
-        bool alreadyexists=false;
-        for(int z=0; z<MergeDrives.Count;z++)
-            for(int a=0; a<MergeDrives[z].MergeBlocks.Count();a++)
-                if(MergeDrives[z].MergeBlocks[a].EntityId==MergeTemp[0].EntityId) alreadyexists=true;   //check if already exists in any drive
+        List<IMyMotorStator> RotorsTemp = new List<IMyMotorStator>(2);   //rotor stack on subgrid
+        RotorsTemp.Add(SubgridRotor);
+        SubgridRotor = GetOnly(RotorBacktrace[SubgridRotor.CubeGrid.EntityId]);
+        if(SubgridRotor==null) continue;  // ..and exactly 1 rotor attached to that.
+        if(SubgridRotor.CubeGrid==MainGrid) continue;  // Rotor must be on subgrid
+        RotorsTemp.Add(SubgridRotor);
 
-        if(alreadyexists==true) continue;
+        // Additional checks to avoid misclassifying or picking up broken drives.
+        // Rotors must point the same direction. They're on different grids,
+        // so have to use dot-product.
+        Vector3D Forward = RotorsTemp[0].WorldMatrix.Up;
+        if(Forward.Dot(SubgridRotor.WorldMatrix.Up) < .99) continue;
 
-        for(int y = 0; y < MergeBlocks.Count(); y++)  // check for more than one merge block
+        List<IMyShipMergeBlock> MergeTemp =
+            new List<IMyShipMergeBlock>(MergeByGrid[merge.CubeGrid.EntityId]);  //merge stack on subgrid
+        bool broken = false;
+        var MainMerges = MergeByGrid[MainGrid.EntityId];
+        foreach(var merge_candidate in MergeTemp)
         {
-            if(MergeBlocks[y].CubeGrid==MergeBlocks[i].CubeGrid && y!=i)  //check if merge blocks are on top of top rotor
+            Vector3D Right = merge_candidate.WorldMatrix.Right;
+            // Merge blocks have their connector on the right face, weirdly enough.
+            // For a drive, the merge should be facing off-axis.
+            if(Right.Dot(Forward) > .01)
             {
-                MergeTemp.Add(MergeBlocks[y]);  //assemble merge stack
+                broken = true;
+                break;
+            }
+            // There should be a companion merge block on the main grid, close enough to activate
+            // with and aligned properly. Otherwise, it's not a drive (yet).
+            Vector3D target = merge_candidate.GetPosition() + Right * 2.5;
+            broken = true;
+            foreach(var pair_candidate in MainMerges)
+            {
+                if(Vector3D.DistanceSquared(target, pair_candidate.GetPosition()) > 1.0) continue;
+                // Leave some slop; it's allowed to be angled somewhat.
+                if(Right.Dot(pair_candidate.WorldMatrix.Right) > -.9) continue;
+                broken = false;
+                break;
             }
         }
+        if(broken) continue;
 
-        for(int j = 0; j < Rotors.Count(); j++)
-        {
-            if(Rotors[j].TopGrid==MergeBlocks[i].CubeGrid)  //check if merge block is on top of any rotor
-            {
-                int tempindex = j;
-                bool done = false;
-                RotorsTemp.Add(Rotors[j]);
+        // Look for optional components
+        var MaingridRotor = GetOnly(RotorBacktrace[SubgridRotor.CubeGrid.EntityId]);
+        if(MaingridRotor?.CubeGrid==MainGrid)
+            MainRotor = MaingridRotor;
 
-                while(done==false)  //do this until no more rotors are in line, usually just once (until one more is found)
-                {
-                    int tempcount=RotorsTemp.Count();   //A -> temp save number of rotors ->B
-                    for(int k=0; k<Rotors.Count(); k++)     //search for rotors until one on the main sub grid is found
-                    {
-                        if(Rotors[k].TopGrid==Rotors[tempindex].CubeGrid)   //if rotor is below previous found rotor
-                        {
-                            RotorsTemp.Add(Rotors[k]);
-                            tempindex=k;
-                            break;
-                        }
-                    }
-                    for(int m = 0; m < Connectors.Count; m++)   //checks if rotor is on same grid as connector
-                    {
-                        if(Rotors[tempindex].CubeGrid==Connectors[m].CubeGrid && Connectors[m].CubeGrid!=ShipReference.CubeGrid && Connectors[m].Status==MyShipConnectorStatus.Connected)
-                        {
-                            ConnectorTemp=Connectors[m];
-                            MainConnector=Connectors[m].OtherConnector;
-                            done=true;
-                            break;
-                        }
-                    }
-                    if(RotorsTemp.Count()==tempcount) break;    //-> B number of rotors in list didn't change ->abort
-                }
+        var SubgridConnector = GetOnly(ConnectorsByGrid[SubgridRotor.CubeGrid.EntityId]);
+        if(SubgridConnector?.OtherConnector?.CubeGrid==MainGrid)
+            MainConnector = SubgridConnector.OtherConnector;
 
-                for(int k=0; k<Rotors.Count(); k++)     //search for main grid rotor
-                {
-                    if(Rotors[k].TopGrid==Rotors[tempindex].CubeGrid && Rotors[k].CubeGrid==ShipReference.CubeGrid)   //if rotor is below previous found rotor
-                    {
-                        MainRotor = Rotors[k];
-                        tempindex=k;
-                        break;
-                    }
-                }
-
-                if(ConnectorTemp!=null && MainConnector!=null && MainRotor!=null && RotorsTemp.Any() && MergeTemp.Any())
-                {
-                    MergeDrives.Add(new MergeDrive(RotorsTemp,MergeTemp,MainConnector,ConnectorTemp, MainRotor));     //give drive its corresponding blocks
-                    break;  //found fitting drive, no need to iterate through the rest
-                }
-            }
-        }
+        used_merges.UnionWith(MergeTemp);   // Remove these blocks from future consideration
+        MergeDrives.Add(new MergeDrive(RotorsTemp,MergeTemp,MainConnector,MainRotor));     //give drive its corresponding blocks
     }
 }
 
@@ -872,7 +888,7 @@ public class MergeDrive
     public bool active; private IMyMotorStator MainRotor;
     public bool reverse;
 
-    public MergeDrive(List<IMyMotorStator> protors, List<IMyShipMergeBlock> pmerge, IMyShipConnector pmainconnector,IMyShipConnector pconnector, IMyMotorStator pmainrotor) //contructor to asign rotors and merge blocks and figure out orientation
+    public MergeDrive(List<IMyMotorStator> protors, List<IMyShipMergeBlock> pmerge, IMyShipConnector pmainconnector, IMyMotorStator pmainrotor) //contructor to asign rotors and merge blocks and figure out orientation
     {
         wiggle=0;
         orientation="not defined";
@@ -881,25 +897,16 @@ public class MergeDrive
         MainRotor = pmainrotor;
         MergeBlocks = pmerge;
         MainConnector = pmainconnector;
-        SubConnector = pconnector;
     }
 
     public bool CheckDestruction()  //also reattaches all rotors and connectors
     {
         bool isdead = false;
 
-        if(MainConnector==null || MainConnector.CubeGrid.GetCubeBlock(MainConnector.Position) == null) isdead=true;    //connector missing, drive is dead
-        else if(MainConnector.IsFunctional==false) isdead=true; //damaged, also dead
-        else if(MainConnector.Status==MyShipConnectorStatus.Unconnected) isdead=true;   //connector not connectable, drive is dead
-        else if(MainConnector.Status==MyShipConnectorStatus.Connectable) MainConnector.Connect();   //connector connected, no need to check other connector
+        if(MainConnector?.Status==MyShipConnectorStatus.Connectable) MainConnector.Connect();   //connector connected, no need to check other connector
 
-        if(MainRotor==null || MainRotor.CubeGrid.GetCubeBlock(MainRotor.Position) == null) isdead=true;    //main rotor missing, drive is dead
-        else if(MainRotor.IsFunctional==false) isdead=true; //damaged, also dead
-        else
-        {
+        if(MainRotor!=null && MainRotor.IsFunctional)
             MainRotor.Attach();     //tries to reattach if not already
-            if (!MainRotor.IsAttached) isdead=true;     //rotor still not attached
-        }
 
         for(int i=0; i<Rotors.Count;i++) if(Rotors[i]==null || Rotors[i].CubeGrid.GetCubeBlock(Rotors[i].Position) == null) isdead=true;
         for(int i=0; i<MergeBlocks.Count;i++) if(MergeBlocks[i]==null || MergeBlocks[i].CubeGrid.GetCubeBlock(MergeBlocks[i].Position) == null) isdead=true;
